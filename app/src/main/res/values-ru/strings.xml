@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Vk Test Task</string>
-    <string name="explorer">Проводник</string>
+    <string name="sorting">Сортировка</string>
+    <string name="sorting_name_asc">По имени (возрастает)</string>
+    <string name="sorting_name_desc">По имени (убывает)</string>
+    <string name="sorting_size_asc">По размеру (возрастает)</string>
+    <string name="sorting_size_desc">По размеру (убывает)</string>
+    <string name="sorting_creation_date_asc">По дате создания (возрастает)</string>
+    <string name="sorting_creation_date_desc">По дате создания (убывает)</string>
+    <string name="sorting_extension_asc">По расширению (возрастает)</string>
+    <string name="sorting_extension_desc">По расширению (убывает)</string>
 </resources>

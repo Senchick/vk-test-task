@@ -1,4 +1,12 @@
 <resources>
     <string name="app_name">Vk Test Task</string>
-    <string name="explorer">Explorer</string>
+    <string name="sorting">Sorting</string>
+    <string name="sorting_name_asc">Name (asc)</string>
+    <string name="sorting_name_desc">Name (desc)</string>
+    <string name="sorting_size_asc">Size (asc)</string>
+    <string name="sorting_size_desc">Size (desc)</string>
+    <string name="sorting_creation_date_asc">Creation date (asc)</string>
+    <string name="sorting_creation_date_desc">Creation date (desc)</string>
+    <string name="sorting_extension_asc">Extension (asc)</string>
+    <string name="sorting_extension_desc">Extension (desc)</string>
 </resources>
