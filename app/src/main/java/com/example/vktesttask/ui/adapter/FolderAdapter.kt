@@ -23,6 +23,7 @@ class FolderAdapter : Adapter<FolderAdapter.FolderHolder>() {
             false
         )
         val holder = FolderHolder(binding)
+
         with(holder.itemView) {
             setOnLongClickListener {
                 println(123)
@@ -51,6 +52,7 @@ class FolderAdapter : Adapter<FolderAdapter.FolderHolder>() {
                     FileType.IMAGE -> R.drawable.baseline_image_24
                     FileType.AUDIO -> R.drawable.baseline_audiotrack_24
                     FileType.TEXT -> R.drawable.baseline_text_24
+                    FileType.DIR -> R.drawable.baseline_folder_24
                 }
             )
         }

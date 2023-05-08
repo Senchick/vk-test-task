@@ -67,7 +67,7 @@ class MainActivity : AppCompatActivity() {
         val requestPermissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
                 if (isGranted) {
-                    fillData()
+                    loadFiles()
                 } else {
                     showToast()
                 }
@@ -75,7 +75,7 @@ class MainActivity : AppCompatActivity() {
 
         val manageStorageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()) {
-                fillData()
+                loadFiles()
             } else {
                 showToast()
             }
@@ -87,7 +87,7 @@ class MainActivity : AppCompatActivity() {
                 intent.data = Uri.parse("package:$packageName")
                 manageStorageLauncher.launch(intent)
             } else {
-                fillData()
+                loadFiles()
             }
         } else {
             if (ContextCompat.checkSelfPermission(
@@ -97,12 +97,12 @@ class MainActivity : AppCompatActivity() {
             ) {
                 requestPermissionLauncher.launch(android.Manifest.permission.READ_EXTERNAL_STORAGE)
             } else {
-                fillData()
+                loadFiles()
             }
         }
     }
 
-    private fun fillData() {
+    private fun loadFiles() {
         launchWhenStartedInScope {
             val files = getExternalFilesDirs(null)
             val m = mutableListOf<Folder>()
