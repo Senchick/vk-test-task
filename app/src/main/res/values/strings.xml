@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Vk Test Task</string>
+    <string name="app_name">VF</string>
     <string name="sorting">Sorting</string>
     <string name="sorting_name_asc">Name (asc)</string>
     <string name="sorting_name_desc">Name (desc)</string>
@@ -9,4 +9,8 @@
     <string name="sorting_creation_date_desc">Creation date (desc)</string>
     <string name="sorting_extension_asc">Extension (asc)</string>
     <string name="sorting_extension_desc">Extension (desc)</string>
+    <string name="storages">Storages</string>
+    <string name="dialog_access_title">Аccess not granted</string>
+    <string name="dialog_access_subtitle">To use the application, grant access to all files</string>
+    <string name="error_open">Error open</string>
 </resources>

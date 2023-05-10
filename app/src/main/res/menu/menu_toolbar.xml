@@ -4,7 +4,7 @@
 
     <item
             android:id="@+id/sorting_button"
-            android:icon="@drawable/baseline_sort_24"
+            android:icon="@drawable/baseline_more_vert_24"
             app:iconTint="?colorOnSurface"
             app:showAsAction="ifRoom"
             android:title="@string/sorting"/>

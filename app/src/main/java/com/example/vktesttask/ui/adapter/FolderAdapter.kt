@@ -1,10 +1,14 @@
 package com.example.vktesttask.ui.adapter
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import androidx.core.net.toUri
 import androidx.recyclerview.widget.RecyclerView.Adapter
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
+import com.example.vktesttask.MainActivity
 import com.example.vktesttask.R
 import com.example.vktesttask.databinding.LayoutFolderItemBinding
 import com.example.vktesttask.model.FileType
@@ -13,7 +17,10 @@ import com.example.vktesttask.util.formatBytes
 import java.text.SimpleDateFormat
 import java.util.*
 
-class FolderAdapter : Adapter<FolderAdapter.FolderHolder>() {
+class FolderAdapter(
+    private val activity: MainActivity,
+    private val onFileSelected: (Folder) -> Unit
+) : Adapter<FolderAdapter.FolderHolder>() {
     private var data: List<Folder> = emptyList()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FolderHolder {
@@ -26,9 +33,25 @@ class FolderAdapter : Adapter<FolderAdapter.FolderHolder>() {
 
         with(holder.itemView) {
             setOnLongClickListener {
-                println(123)
+                val item = data[holder.adapterPosition]
+                if (item.fileType != FileType.DIR) {
+                    val uri = item.file.toUri()
+                    val shareIntent: Intent = Intent().apply {
+                        action = Intent.ACTION_SEND
+                        putExtra(Intent.EXTRA_STREAM, uri)
+
+                        type = activity.contentResolver.getType(uri)
+                    }
+
+                    activity.startActivity(Intent.createChooser(shareIntent, null))
+                }
 
                 false
+            }
+            setOnClickListener {
+                val item = data[holder.adapterPosition]
+
+                onFileSelected(item)
             }
         }
 
@@ -42,8 +65,15 @@ class FolderAdapter : Adapter<FolderAdapter.FolderHolder>() {
 
         binding.apply {
             title.text = item.name
-            subtitle.text = formatBytes(item.size ?: 0) + "  |  " + convertLongToFormattedDate(item.creationDate)
-            path.text = item.path
+            if (item.fileType == FileType.DIR) {
+                val count = item.subFiles ?: 0
+                subtitle.text = "$count " + activity.resources.getQuantityText(R.plurals.element, count)
+                    .toString() + "  |  " + convertLongToFormattedDate(item.creationDate)
+            } else {
+                subtitle.text = formatBytes(item.size ?: 0) + "  |  " + convertLongToFormattedDate(item.creationDate)
+            }
+
+            status.visibility = if (item.isChanged) View.VISIBLE else View.GONE
 
             imageView.setImageResource(
                 when (item.fileType) {
@@ -59,7 +89,7 @@ class FolderAdapter : Adapter<FolderAdapter.FolderHolder>() {
     }
 
     private fun convertLongToFormattedDate(timeInMillis: Long): String {
-        val formatter = SimpleDateFormat("mm:HH dd.MM.yyyy", Locale.getDefault())
+        val formatter = SimpleDateFormat("HH:mm dd.MM.yyyy", Locale.getDefault())
         val date = Date(timeInMillis)
 
         return formatter.format(date)

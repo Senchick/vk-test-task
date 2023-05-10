@@ -1,44 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout
-        android:background="?selectableItemBackground"
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:paddingBottom="12dp"
+        android:background="?selectableItemBackground"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="56dp">
 
     <ImageView
+            app:tint="?colorOnSurface"
             android:src="@drawable/baseline_file_24"
             android:layout_width="40dp"
             android:layout_height="40dp"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             android:layout_marginStart="8dp"
-            android:id="@+id/imageView"
-            app:tint="?colorOnSurface"
-            android:layout_marginTop="12dp">
+            android:id="@+id/imageView">
 
     </ImageView>
 
+    <androidx.appcompat.widget.AppCompatImageView
+            app:tint="?colorOnSurface"
+            android:src="@drawable/baseline_change_circle_24"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            app:layout_constraintStart_toEndOf="@+id/imageView"
+            android:id="@+id/status"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/subtitle"
+            android:layout_marginStart="8dp"/>
+
     <androidx.appcompat.widget.AppCompatTextView
+            android:text="title"
             android:lines="1"
             android:ellipsize="end"
-            android:text="title"
             android:id="@+id/title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/imageView"
-            android:layout_marginStart="8dp"
+            app:layout_constraintStart_toEndOf="@+id/status"
             android:layout_marginEnd="24dp"
+            app:layout_constraintBottom_toTopOf="@+id/subtitle"
             app:layout_constraintTop_toTopOf="parent"
-            android:layout_marginTop="12dp"/>
+            android:layout_marginStart="8dp"/>
 
     <androidx.appcompat.widget.AppCompatTextView
+            android:text="subtitle"
             android:lines="1"
             android:ellipsize="end"
-            android:text="subtitle"
             android:id="@+id/subtitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -49,20 +58,5 @@
             android:textSize="12sp"
             android:textColor="?colorSecondary"
             app:layout_constraintTop_toBottomOf="@+id/title"
-            />
-
-    <androidx.appcompat.widget.AppCompatTextView
-            android:lines="1"
-            android:ellipsize="end"
-            android:text="path"
-            android:id="@+id/path"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/imageView"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="24dp"
-            android:textSize="11sp"
-            app:layout_constraintTop_toBottomOf="@+id/subtitle"
-            />
+            app:layout_constraintBottom_toBottomOf="parent"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

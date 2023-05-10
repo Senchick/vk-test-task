@@ -13,4 +13,10 @@ interface FolderDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFolders(folders: List<FolderEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(folder: FolderEntity)
+
+    @Query("select * from folder where path=:path")
+    suspend fun getByPath(path: String): FolderEntity?
 }

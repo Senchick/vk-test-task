@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Vk Test Task</string>
+    <string name="app_name">ВФайлах</string>
     <string name="sorting">Сортировка</string>
     <string name="sorting_name_asc">По имени (возрастает)</string>
     <string name="sorting_name_desc">По имени (убывает)</string>
@@ -10,4 +10,8 @@
     <string name="sorting_creation_date_desc">По дате создания (убывает)</string>
     <string name="sorting_extension_asc">По расширению (возрастает)</string>
     <string name="sorting_extension_desc">По расширению (убывает)</string>
+    <string name="storages">Хранилища</string>
+    <string name="dialog_access_title">Доступ не предоставлен</string>
+    <string name="dialog_access_subtitle">Чтобы пользоваться приложением предоставьте доступ ко всем файлам</string>
+    <string name="error_open">Не удалось открыть файл</string>
 </resources>

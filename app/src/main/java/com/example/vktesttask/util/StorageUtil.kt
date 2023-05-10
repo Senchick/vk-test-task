@@ -1,6 +1,8 @@
 package com.example.vktesttask.util
 
+import android.content.Context
 import android.os.Build
+import androidx.core.content.ContextCompat
 import com.example.vktesttask.model.FileType
 import com.example.vktesttask.model.Folder
 import kotlinx.coroutines.flow.Flow
@@ -25,6 +27,13 @@ suspend fun getAllFilesFlow(root: File): Flow<File> = flow {
             emit(root)
         }
     }
+}
+
+fun getStorages(context: Context) = ContextCompat.getExternalFilesDirs(context, null).map {
+    val storage = it.absolutePath
+        .split("Android/data/")[0]
+
+    File(storage)
 }
 
 fun File.getFileCreationTimeAndSize(): Pair<Long, Long> {
@@ -52,6 +61,10 @@ fun formatBytes(bytes: Long): String {
 }
 
 fun File.getFileType(): FileType {
+    if (isDirectory) {
+        return FileType.DIR
+    }
+    // можно было использовать HashMap, но с when меньше кода
     return when (extension) {
         "mp4", "mov", "avi", "webm" -> FileType.VIDEO
         "jpeg", "jpg", "png", "webp" -> FileType.IMAGE
@@ -68,8 +81,9 @@ fun File.toFolder(): Folder {
         fileType = getFileType(),
         creationDate = timeAndSize.first,
         size = timeAndSize.second,
-        name = this.name,
+        name = name,
         extension = extension,
-        path = absolutePath
+        subFiles = listFiles()?.size,
+        file = this
     )
 }

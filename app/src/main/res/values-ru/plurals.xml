@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="element">
+        <item quantity="one" tools:ignore="ImpliedQuantity">элемент</item>
+        <item quantity="few">элемента</item>
+        <item quantity="many">элементов</item>
+        <item quantity="other">элементов</item>
+    </plurals>
+</resources>

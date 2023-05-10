@@ -1,35 +1,46 @@
 package com.example.vktesttask
 
+import android.content.ActivityNotFoundException
+import android.content.DialogInterface
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.os.StrictMode
+import android.os.StrictMode.VmPolicy
 import android.provider.Settings
 import android.view.Gravity
 import android.view.Menu
+import android.view.SubMenu
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import androidx.core.view.forEach
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.WorkRequest
 import com.example.vktesttask.data.repository.FolderRepository
 import com.example.vktesttask.databinding.ActivityMainBinding
-import com.example.vktesttask.model.Folder
+import com.example.vktesttask.model.FileType
 import com.example.vktesttask.model.SortingType
+import com.example.vktesttask.receiver.StorageReceiver
 import com.example.vktesttask.ui.adapter.FolderAdapter
-import com.example.vktesttask.util.getAllFilesFlow
-import com.example.vktesttask.util.toFolder
 import com.example.vktesttask.viewmodel.FolderViewModel
+import com.example.vktesttask.work.FolderFileChangedWorker
 import dagger.hilt.android.AndroidEntryPoint
-import java.io.File
 import javax.inject.Inject
+import kotlin.system.exitProcess
+
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -42,52 +53,85 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var repository: FolderRepository
 
+    private lateinit var storageReceiver: StorageReceiver
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Добавлено, чтобы работал Share API
+        val builder = VmPolicy.Builder()
+        StrictMode.setVmPolicy(builder.build())
+
+        val fileChanged: WorkRequest = FolderFileChangedWorker.startUpFilesChangedWork()
+        WorkManager.getInstance(this).enqueue(fileChanged)
+
         setupRecyclerView()
         setupToolbar()
 
+        storageReceiver = StorageReceiver {
+            viewModel.initializeStorages(this)
+        }
+
         launchWhenStartedInScope {
-            viewModel.data.collect {
-                recyclerViewAdapter.updateData(it)
+            viewModel.uiState.collect {
+                recyclerViewAdapter.updateData(it.data)
             }
         }
 
         requestStoragePermission()
     }
 
-    private fun showToast() {
-        Toast.makeText(this, "Дай права плиз", Toast.LENGTH_LONG).show()
-    }
-
-    private fun requestStoragePermission() {
-        val requestPermissionLauncher =
-            registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-                if (isGranted) {
-                    loadFiles()
-                } else {
-                    showToast()
+    private var dialogNotGranted: AlertDialog? = null
+    private fun actionOnNotGranted() {
+        if (dialogNotGranted == null) {
+            AlertDialog.Builder(this).apply {
+                setTitle(R.string.dialog_access_title)
+                setMessage(R.string.dialog_access_subtitle)
+                setPositiveButton(android.R.string.ok) { _: DialogInterface, _: Int ->
+                    requestStoragePermission()
                 }
-            }
 
-        val manageStorageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()) {
-                loadFiles()
-            } else {
-                showToast()
+                setNegativeButton(android.R.string.cancel) { _: DialogInterface, _: Int ->
+                    exitProcess(0)
+                }
+
+                setOnCancelListener {
+                    exitProcess(0)
+                }
+
+                dialogNotGranted = create()
             }
         }
 
+        dialogNotGranted?.show()
+    }
+
+    private val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) {
+                initialization()
+            } else {
+                actionOnNotGranted()
+            }
+        }
+
+    private val manageStorageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()) {
+            initialization()
+        } else {
+            actionOnNotGranted()
+        }
+    }
+
+    private fun requestStoragePermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
                 val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
                 intent.data = Uri.parse("package:$packageName")
                 manageStorageLauncher.launch(intent)
             } else {
-                loadFiles()
+                initialization()
             }
         } else {
             if (ContextCompat.checkSelfPermission(
@@ -97,29 +141,13 @@ class MainActivity : AppCompatActivity() {
             ) {
                 requestPermissionLauncher.launch(android.Manifest.permission.READ_EXTERNAL_STORAGE)
             } else {
-                loadFiles()
+                initialization()
             }
         }
     }
 
-    private fun loadFiles() {
-        launchWhenStartedInScope {
-            val files = getExternalFilesDirs(null)
-            val m = mutableListOf<Folder>()
-
-            files.map { it.absolutePath.split("Android/data/")[0] }
-                .map { File(it) }
-                .forEach {
-                    getAllFilesFlow(it).collect {
-                        println(it.absolutePath)
-                        m.add(it.toFolder())
-                    }
-
-                    viewModel.updateData(m)
-
-                    println(it.absolutePath)
-                }
-        }
+    private fun initialization() {
+        viewModel.initializeStorages(this)
     }
 
     private fun setupToolbar() {
@@ -138,8 +166,29 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onBackPressed() {
+        if (viewModel.canNavigateUp()) {
+            viewModel.navigateUp()
+        } else {
+            onBackPressedDispatcher.onBackPressed()
+        }
+    }
+
     private fun setupRecyclerView() {
-        recyclerViewAdapter = FolderAdapter()
+        recyclerViewAdapter = FolderAdapter(this) {
+            if (it.fileType == FileType.DIR) {
+                viewModel.navigateTo(it.file)
+            } else {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.fromFile(it.file))
+
+                    startActivity(intent)
+                } catch (e: ActivityNotFoundException) {
+                    Toast.makeText(this, R.string.error_open, Toast.LENGTH_LONG).show()
+                    e.printStackTrace()
+                }
+            }
+        }
 
         binding.recyclerView.apply {
             val divider = ContextCompat.getDrawable(this@MainActivity, R.drawable.divider)
@@ -153,45 +202,111 @@ class MainActivity : AppCompatActivity() {
             adapter = this@MainActivity.recyclerViewAdapter
             layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.VERTICAL, false)
         }
+
+        binding.refreshLayout.setOnRefreshListener {
+            launchWhenStartedInScope {
+                viewModel.updateFolder()
+            }
+
+            binding.refreshLayout.isRefreshing = false
+        }
     }
 
-    private var lastChecked: Int = SortingType.NAME_ASC.ordinal
+    private var lastSortingChecked: Int = SortingType.NAME_ASC.ordinal
+    private var lastStoragesChecked = 0
     private fun showPopupMenu(anchorView: View) {
         val popupMenu = PopupMenu(this, anchorView, Gravity.END)
         val menu = popupMenu.menu
+        val sortingSubMenu: SubMenu
+        val storagesSubMenu: SubMenu
 
         menu.apply {
-            add(Menu.NONE, SortingType.NAME_ASC.ordinal, Menu.NONE, R.string.sorting_name_asc)
-            add(Menu.NONE, SortingType.NAME_DESC.ordinal, Menu.NONE, R.string.sorting_name_desc)
-            add(Menu.NONE, SortingType.SIZE_ASC.ordinal, Menu.NONE, R.string.sorting_size_asc)
-            add(Menu.NONE, SortingType.SIZE_DESC.ordinal, Menu.NONE, R.string.sorting_size_desc)
-            add(Menu.NONE, SortingType.CREATION_DATE_ASC.ordinal, Menu.NONE, R.string.sorting_creation_date_asc)
-            add(Menu.NONE, SortingType.CREATION_DATE_DESC.ordinal, Menu.NONE, R.string.sorting_creation_date_desc)
-            add(Menu.NONE, SortingType.EXTENSION_ASC.ordinal, Menu.NONE, R.string.sorting_extension_asc)
-            add(Menu.NONE, SortingType.EXTENSION_DESC.ordinal, Menu.NONE, R.string.sorting_extension_desc)
+            sortingSubMenu = addSubMenu(R.string.sorting).apply {
+                add(SORTING_SUBMENU, SortingType.NAME_ASC.ordinal, Menu.NONE, R.string.sorting_name_asc)
+                add(SORTING_SUBMENU, SortingType.NAME_DESC.ordinal, Menu.NONE, R.string.sorting_name_desc)
+                add(SORTING_SUBMENU, SortingType.SIZE_ASC.ordinal, Menu.NONE, R.string.sorting_size_asc)
+                add(SORTING_SUBMENU, SortingType.SIZE_DESC.ordinal, Menu.NONE, R.string.sorting_size_desc)
+                add(
+                    SORTING_SUBMENU,
+                    SortingType.CREATION_DATE_ASC.ordinal,
+                    Menu.NONE,
+                    R.string.sorting_creation_date_asc
+                )
+                add(
+                    SORTING_SUBMENU,
+                    SortingType.CREATION_DATE_DESC.ordinal,
+                    Menu.NONE,
+                    R.string.sorting_creation_date_desc
+                )
+                add(SORTING_SUBMENU, SortingType.EXTENSION_ASC.ordinal, Menu.NONE, R.string.sorting_extension_asc)
+                add(SORTING_SUBMENU, SortingType.EXTENSION_DESC.ordinal, Menu.NONE, R.string.sorting_extension_desc)
+            }
+
+            storagesSubMenu = addSubMenu(R.string.storages).apply {
+                viewModel.uiState.value.storages.forEachIndexed { index, file ->
+                    add(STORAGES_SUBMENU, index, Menu.NONE, file.absolutePath).isCheckable = true
+                }
+
+                getItem(lastStoragesChecked)?.isChecked = true
+            }
         }
 
-        menu.forEach {
+        sortingSubMenu.forEach {
             it.isCheckable = true
         }
 
-        menu.getItem(lastChecked).isChecked = true
+        sortingSubMenu.getItem(lastSortingChecked).isChecked = true
 
         popupMenu.setOnMenuItemClickListener { menuItem ->
-            val type = SortingType.values()
-                .find { it.ordinal == menuItem.itemId }
-                ?: return@setOnMenuItemClickListener false
+            val id = menuItem.itemId
 
-            menu.getItem(lastChecked).isChecked = false
-            menu.getItem(type.ordinal).isChecked = true
+            when (menuItem.groupId) {
+                SORTING_SUBMENU -> {
+                    val type = SortingType.values()
+                        .find { it.ordinal == id }
+                        ?: return@setOnMenuItemClickListener false
 
-            lastChecked = type.ordinal
+                    sortingSubMenu.getItem(lastSortingChecked).isChecked = false
+                    sortingSubMenu.getItem(id).isChecked = true
 
-            viewModel.updateSortingType(type)
+                    lastSortingChecked = id
+
+                    viewModel.updateSortingType(type)
+                }
+                STORAGES_SUBMENU -> {
+                    storagesSubMenu.getItem(lastStoragesChecked).isChecked = false
+                    storagesSubMenu.getItem(id).isChecked = true
+
+                    lastStoragesChecked = id
+
+                    viewModel.updateStorage(id)
+                }
+                else -> return@setOnMenuItemClickListener false
+            }
 
             true
         }
 
         popupMenu.show()
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        val intentFilter = IntentFilter().apply {
+            addAction(Intent.ACTION_MEDIA_MOUNTED)
+            addDataScheme("file")
+        }
+        registerReceiver(storageReceiver, intentFilter)
+    }
+
+    override fun onPause() {
+        super.onPause()
+
+        unregisterReceiver(storageReceiver)
+    }
+    companion object {
+        private const val SORTING_SUBMENU = 1
+        private const val STORAGES_SUBMENU = 2
     }
 }
